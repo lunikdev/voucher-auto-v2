@@ -1,0 +1,35 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Voucher {
+  id             Int       @id @default(autoincrement())
+  voucher        String    @unique
+  used           Boolean   @default(false)
+  mac            String?  
+  usedAt         DateTime? // Quando o voucher foi utilizado
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  user           User?
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String
+  phone     String
+  ip        String?  // Nova coluna para armazenar o IP do usuário
+  mac       String?  // Nova coluna para armazenar o MAC do usuário
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  voucher   Voucher  @relation(fields: [voucherId], references: [id])
+  voucherId Int      @unique
+}
