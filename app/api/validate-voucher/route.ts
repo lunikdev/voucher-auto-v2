@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
     recentTime.setMinutes(recentTime.getMinutes() - ACTIVE_TIME_MINUTES);
 
     // Verificar se já existe um usuário com este MAC
-    const existingUser = await prisma.User.findFirst({
+    const existingUser = await prisma.user.findFirst({
       where: {
         mac: mac,
         updatedAt: {
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Obter ou criar o login padrão
-    let loginData = await prisma.Login.findFirst({
+    let loginData = await prisma.login.findFirst({
       where: {
         username: DEFAULT_USERNAME,
         active: true
@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
 
     // Se não existir, criar o login padrão
     if (!loginData) {
-      loginData = await prisma.Login.create({
+      loginData = await prisma.login.create({
         data: {
           username: DEFAULT_USERNAME,
           password: DEFAULT_PASSWORD,
@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Criar ou atualizar o usuário associado ao login
-    const existingUserAnyTime = await prisma.User.findFirst({
+    const existingUserAnyTime = await prisma.user.findFirst({
       where: {
         mac: mac
       }
@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
     
     if (existingUserAnyTime) {
       // Atualizar o usuário existente
-      await prisma.User.update({
+      await prisma.user.update({
         where: {
           id: existingUserAnyTime.id
         },
@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
       });
     } else {
       // Criar um novo usuário
-      await prisma.User.create({
+      await prisma.user.create({
         data: {
           name: validator.escape(name), // Escapar HTML para prevenir XSS
           email: email.toLowerCase(), // Normalizar email
