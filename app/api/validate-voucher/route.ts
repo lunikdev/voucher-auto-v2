@@ -8,8 +8,8 @@ import validator from 'validator';
 const LOGIN_PORTAL_URL = process.env.NEXT_PUBLIC_LOGIN_PORTAL_URL || 'https://hsevento.internet10.net.br';
 
 // Credenciais fixas - idealmente, buscar de variáveis de ambiente
-const DEFAULT_USERNAME = process.env.DEFAULT_USERNAME || 'internet';
-const DEFAULT_PASSWORD = process.env.DEFAULT_PASSWORD || 'acesso2024';
+const DEFAULT_USERNAME = process.env.DEFAULT_USERNAME || 'qrtempo';
+const DEFAULT_PASSWORD = process.env.DEFAULT_PASSWORD || 'B1AK26L2M4';
 
 export async function POST(request: NextRequest) {
   try {
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (existingUser) {
-      // Para maior segurança, não retornamos as credenciais quando o usuário já está ativo
+      // Por segurança, não retornamos credenciais quando o usuário já está ativo
       return NextResponse.json({
         message: 'Sua navegação já foi liberada',
         alreadyActive: true
