@@ -2,13 +2,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import validator from 'validator'; // Necessário instalar: npm install validator @types/validator
+import validator from 'validator';
 
-// Tempo limite em minutos para considerar uma navegação como ativa
-// Usar variável de ambiente ou valor padrão de 15 minutos
-const ACTIVE_TIME_LIMIT_MINUTES = process.env.ACTIVE_VOUCHER_TIME_MINUTES 
-  ? parseInt(process.env.ACTIVE_VOUCHER_TIME_MINUTES, 10) 
-  : 15;
+// Definir a URL do portal de login a partir de variável de ambiente
+const LOGIN_PORTAL_URL = process.env.NEXT_PUBLIC_LOGIN_PORTAL_URL || 'https://hsevento.internet10.net.br';
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,8 +18,6 @@ export async function POST(request: NextRequest) {
     const mac = validator.trim(String(body.mac || ''));
     
     // Obter IP do cliente da requisição
-    // Primeiro tenta obter do cabeçalho x-forwarded-for (usado em algumas configurações de proxy)
-    // Se não estiver disponível, usa o IP remoto da requisição
     const forwardedFor = request.headers.get('x-forwarded-for');
     const ip = forwardedFor ? 
       forwardedFor.split(',')[0].trim() : 
@@ -70,75 +65,56 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verificar se o MAC já está associado a um voucher usado recentemente
-    const recentTime = new Date();
-    recentTime.setMinutes(recentTime.getMinutes() - ACTIVE_TIME_LIMIT_MINUTES);
-
-    // Usar updatedAt como proxy para usedAt, já que updatedAt é atualizado quando o voucher é marcado como usado
-    const recentVoucher = await prisma.voucher.findFirst({
+    // Verificar se o MAC já está associado a um usuário
+    const existingUser = await prisma.user.findFirst({
       where: {
         mac: mac,
-        used: true,
-        updatedAt: {
-          gte: recentTime
-        }
       },
-      orderBy: {
-        updatedAt: 'desc'
+      include: {
+        login: true
       }
     });
 
-    if (recentVoucher) {
+    if (existingUser) {
       return NextResponse.json({
         message: 'Sua navegação já foi liberada',
-        alreadyActive: true
+        alreadyActive: true,
+        voucher: existingUser.login.username // Manter compatibilidade com a interface anterior
       });
     }
 
-    // Verificar se existe algum voucher disponível
-    const availableVoucher = await prisma.voucher.findFirst({
+    // Verificar se existe algum login disponível
+    const availableLogin = await prisma.login.findFirst({
       where: {
-        used: false,
+        active: true,
       },
     });
 
-    if (!availableVoucher) {
+    if (!availableLogin) {
       return NextResponse.json(
-        { message: 'Não há vouchers disponíveis no momento' },
+        { message: 'Não há logins disponíveis no momento' },
         { status: 400 }
       );
     }
 
-    // Atualizar o voucher e criar o usuário
-    const updateVoucher = prisma.voucher.update({
-      where: {
-        id: availableVoucher.id,
-      },
-      data: {
-        used: true,
-        mac: mac, // Já temos o campo MAC na tabela Voucher
-        usedAt: new Date(), // Registrar quando o voucher foi usado
-      },
-    });
-
-    const createUser = prisma.user.create({
+    // Criar um novo usuário
+    await prisma.user.create({
       data: {
         name: validator.escape(name), // Escapar HTML para prevenir XSS
         email: email.toLowerCase(), // Normalizar email
         phone: phoneDigits,
-        voucherId: availableVoucher.id,
+        ip: ip,
+        mac: mac,
+        loginId: availableLogin.id,
       },
     });
 
-    // Executar as duas operações em uma transação
-    await prisma.$transaction([updateVoucher, createUser]);
-
     return NextResponse.json({
-      message: 'Voucher validado com sucesso!',
-      voucher: availableVoucher.voucher,
+      message: 'Login validado com sucesso!',
+      voucher: availableLogin.username, // Manter compatibilidade com a interface anterior
     });
   } catch (error) {
-    console.error('Erro ao validar voucher:', error);
+    console.error('Erro ao validar login:', error);
     return NextResponse.json(
       { message: 'Erro interno do servidor' },
       { status: 500 }
