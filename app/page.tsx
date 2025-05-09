@@ -170,7 +170,7 @@ export default function Home() {
     setSuccessMessage('');
     setAlreadyActive(false);
     setLoading(true);
-
+    
     // Assegura que temos um MAC address
     if (!macAddress) {
       setErrorMessage('Não foi possível obter o endereço MAC do seu dispositivo.');
@@ -192,7 +192,7 @@ export default function Home() {
           mac: macAddress // Inclui o MAC address na requisição
         }),
       });
-
+      
       const data = await res.json();
       
       if (res.ok) {
@@ -211,15 +211,12 @@ export default function Home() {
           const username = data.username || data.voucher;
           const password = data.password || data.voucher;
           
-          // Proteger contra XSS ao montar a URL
+          // Usar a página de redirecionamento interna
           const encodedUsername = encodeURIComponent(username);
           const encodedPassword = encodeURIComponent(password);
-          const loginUrl = `${LOGIN_PORTAL_URL}/login?username=${encodedUsername}&password=${encodedPassword}`;
           
-          // Pequeno atraso para mostrar a mensagem de sucesso antes do redirecionamento
-          setTimeout(() => {
-            window.location.href = loginUrl;
-          }, 1500);
+          // Redirecionar para nossa página interna de redirecionamento
+          window.location.href = `/login-redirect?username=${encodedUsername}&password=${encodedPassword}`;
         }
       } else {
         setErrorMessage(data.message || 'Ocorreu um erro ao processar sua solicitação.');
