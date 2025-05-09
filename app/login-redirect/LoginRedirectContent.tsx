@@ -7,12 +7,27 @@ import styles from '../../public/voucher.module.css';
 // Definir a URL do portal de login a partir de variável de ambiente
 const LOGIN_PORTAL_URL = process.env.NEXT_PUBLIC_LOGIN_PORTAL_URL || 'https://hsevento.internet10.net.br';
 
+// Chave para armazenar informações sobre tentativas de redirecionamento
+const REDIRECT_ATTEMPT_KEY = 'redirect_attempt';
+
 export default function LoginRedirectContent() {
   const searchParams = useSearchParams();
   const [message, setMessage] = useState('Redirecionando para o portal de acesso...');
   const [error, setError] = useState('');
+  const [redirectAttempted, setRedirectAttempted] = useState(false);
 
   useEffect(() => {
+    // Verificar se já tentamos redirecionar antes para evitar loops
+    const redirectAttempt = sessionStorage.getItem(REDIRECT_ATTEMPT_KEY);
+    const currentTimestamp = Date.now();
+    
+    // Se já tentamos redirecionar nos últimos 10 segundos, evitar loop
+    if (redirectAttempt && (currentTimestamp - parseInt(redirectAttempt)) < 10000) {
+      setError('Erro ao conectar ao portal de login. Por favor, tente novamente mais tarde.');
+      setRedirectAttempted(true);
+      return;
+    }
+    
     // Extrair username e password dos parâmetros da URL
     const username = searchParams.get('username');
     const password = searchParams.get('password');
@@ -23,6 +38,9 @@ export default function LoginRedirectContent() {
     }
     
     try {
+      // Registrar a tentativa de redirecionamento com timestamp
+      sessionStorage.setItem(REDIRECT_ATTEMPT_KEY, currentTimestamp.toString());
+      
       // Construir a URL de redirecionamento
       const encodedUsername = encodeURIComponent(username);
       const encodedPassword = encodeURIComponent(password);
@@ -48,7 +66,11 @@ export default function LoginRedirectContent() {
         <p>{error}</p>
         <button 
           className={styles.button}
-          onClick={() => window.location.href = '/'}
+          onClick={() => {
+            // Limpar o registro de tentativa de redirecionamento
+            sessionStorage.removeItem(REDIRECT_ATTEMPT_KEY);
+            window.location.href = '/';
+          }}
         >
           Voltar para o Início
         </button>
