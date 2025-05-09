@@ -7,6 +7,10 @@ import validator from 'validator';
 // Definir a URL do portal de login a partir de variável de ambiente
 const LOGIN_PORTAL_URL = process.env.NEXT_PUBLIC_LOGIN_PORTAL_URL || 'https://hsevento.internet10.net.br';
 
+// Credenciais fixas - idealmente, buscar de variáveis de ambiente
+const DEFAULT_USERNAME = process.env.DEFAULT_USERNAME || 'internet';
+const DEFAULT_PASSWORD = process.env.DEFAULT_PASSWORD || 'acesso2024';
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -65,39 +69,42 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verificar se o MAC já está associado a um usuário
+    // Obter ou criar um login padrão
+    let loginData = await prisma.login.findFirst({
+      where: {
+        username: DEFAULT_USERNAME,
+        active: true,
+      },
+    });
+
+    // Se não existir, criar o login padrão
+    if (!loginData) {
+      loginData = await prisma.login.create({
+        data: {
+          username: DEFAULT_USERNAME,
+          password: DEFAULT_PASSWORD,
+          active: true,
+        }
+      });
+    }
+
+    // Verificar se este MAC já está associado a este login
     const existingUser = await prisma.user.findFirst({
       where: {
         mac: mac,
+        loginId: loginData.id,
       },
-      include: {
-        login: true
-      }
     });
 
     if (existingUser) {
       return NextResponse.json({
         message: 'Sua navegação já foi liberada',
         alreadyActive: true,
-        voucher: existingUser.login.username // Manter compatibilidade com a interface anterior
+        voucher: loginData.username // Manter compatibilidade com a interface anterior
       });
     }
 
-    // Verificar se existe algum login disponível
-    const availableLogin = await prisma.login.findFirst({
-      where: {
-        active: true,
-      },
-    });
-
-    if (!availableLogin) {
-      return NextResponse.json(
-        { message: 'Não há logins disponíveis no momento' },
-        { status: 400 }
-      );
-    }
-
-    // Criar um novo usuário
+    // Criar um novo usuário associado ao login
     await prisma.user.create({
       data: {
         name: validator.escape(name), // Escapar HTML para prevenir XSS
@@ -105,13 +112,13 @@ export async function POST(request: NextRequest) {
         phone: phoneDigits,
         ip: ip,
         mac: mac,
-        loginId: availableLogin.id,
+        loginId: loginData.id,
       },
     });
 
     return NextResponse.json({
       message: 'Login validado com sucesso!',
-      voucher: availableLogin.username, // Manter compatibilidade com a interface anterior
+      voucher: loginData.username, // Manter compatibilidade com a interface anterior
     });
   } catch (error) {
     console.error('Erro ao validar login:', error);
