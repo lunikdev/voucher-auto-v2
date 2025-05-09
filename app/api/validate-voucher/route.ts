@@ -78,22 +78,6 @@ export async function POST(request: NextRequest) {
     // Calcular o tempo limite para considerar uma navegação ativa
     const recentTime = new Date();
     recentTime.setMinutes(recentTime.getMinutes() - ACTIVE_TIME_MINUTES);
-    
-    // Tentar obter a configuração de tempo ativo do banco de dados usando SQL bruto
-    // (alternativa para evitar usar o modelo Conf diretamente)
-    try {
-      // Prisma permite executar SQL bruto
-      const result = await prisma.$queryRaw`SELECT active_time_minutes FROM Conf LIMIT 1`;
-      
-      // Se encontramos um resultado, usar o valor
-      if (result && result.length > 0 && result[0].active_time_minutes > 0) {
-        // Recalcular o tempo limite com o valor do banco de dados
-        recentTime.setMinutes(recentTime.getMinutes() + ACTIVE_TIME_MINUTES - result[0].active_time_minutes);
-      }
-    } catch (error) {
-      // Se ocorrer algum erro, simplesmente usar o valor padrão da variável de ambiente
-      console.warn('Não foi possível obter a configuração de tempo ativo do banco de dados:', error);
-    }
 
     // Verificar se já existe um usuário com este MAC
     const existingUser = await prisma.User.findFirst({
