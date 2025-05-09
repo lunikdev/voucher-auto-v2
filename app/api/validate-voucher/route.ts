@@ -80,12 +80,10 @@ export async function POST(request: NextRequest) {
     });
 
     if (existingUser) {
+      // Para maior segurança, não retornamos as credenciais quando o usuário já está ativo
       return NextResponse.json({
         message: 'Sua navegação já foi liberada',
-        alreadyActive: true,
-        voucher: existingUser.login.username, // Para compatibilidade
-        username: existingUser.login.username,
-        password: existingUser.login.password
+        alreadyActive: true
       });
     }
 
