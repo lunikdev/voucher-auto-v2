@@ -25,10 +25,10 @@ model User {
   name      String
   email     String
   phone     String
-  ip        String   // Armazena o IP do usuário
-  mac       String   // Armazena o MAC do usuário
+  ip        String   
+  mac       String   @unique // Garantir que um MAC seja único no sistema
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   login     Login    @relation(fields: [loginId], references: [id])
-  loginId   Int      // Chave estrangeira para o login
+  loginId   Int      
 }
