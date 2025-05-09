@@ -35,7 +35,7 @@ model User {
 
 model conf {
   id                      Int       @id @default(autoincrement())
-  active_time_minutes     Int       @default(15) // Valor padrão de 15 minutos
+  active_time_minutes     Int       @default(15)
   createdAt               DateTime  @default(now())
   updatedAt               DateTime  @updatedAt
 }
