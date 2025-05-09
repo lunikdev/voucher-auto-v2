@@ -17,7 +17,7 @@ async function main() {
 
   try {
     // Verificar se o login padrão já existe
-    const existingLogin = await prisma.login.findFirst({
+    const existingLogin = await prisma.Login.findFirst({
       where: {
         username: DEFAULT_USERNAME
       }
@@ -28,7 +28,7 @@ async function main() {
       
       // Atualizar a senha se necessário e garantir que esteja ativo
       if (existingLogin.password !== DEFAULT_PASSWORD || !existingLogin.active) {
-        await prisma.login.update({
+        await prisma.Login.update({
           where: { id: existingLogin.id },
           data: {
             password: DEFAULT_PASSWORD,
@@ -39,7 +39,7 @@ async function main() {
       }
     } else {
       // Criar o login padrão
-      await prisma.login.create({
+      await prisma.Login.create({
         data: {
           username: DEFAULT_USERNAME,
           password: DEFAULT_PASSWORD,
@@ -50,12 +50,12 @@ async function main() {
     }
     
     // Verificar se já existe configuração
-    const existingConf = await prisma.conf.findFirst();
+    const existingConf = await prisma.Conf.findFirst();
     
     if (existingConf) {
       // Atualizar a configuração existente se o valor do ambiente for diferente
       if (existingConf.active_time_minutes !== ACTIVE_TIME_MINUTES) {
-        await prisma.conf.update({
+        await prisma.Conf.update({
           where: { id: existingConf.id },
           data: {
             active_time_minutes: ACTIVE_TIME_MINUTES
@@ -67,7 +67,7 @@ async function main() {
       }
     } else {
       // Criar nova configuração
-      await prisma.conf.create({
+      await prisma.Conf.create({
         data: {
           active_time_minutes: ACTIVE_TIME_MINUTES
         }
@@ -76,7 +76,7 @@ async function main() {
     }
     
     // Contar usuários no sistema
-    const userCount = await prisma.user.count();
+    const userCount = await prisma.User.count();
     console.log(`Total de usuários cadastrados: ${userCount}`);
     
   } catch (error) {
