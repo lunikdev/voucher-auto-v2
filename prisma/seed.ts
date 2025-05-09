@@ -17,7 +17,7 @@ async function main() {
 
   try {
     // Verificar se o login padrão já existe
-    const existingLogin = await prisma.Login.findFirst({
+    const existingLogin = await prisma.login.findFirst({
       where: {
         username: DEFAULT_USERNAME
       }
@@ -28,7 +28,7 @@ async function main() {
       
       // Atualizar a senha se necessário e garantir que esteja ativo
       if (existingLogin.password !== DEFAULT_PASSWORD || !existingLogin.active) {
-        await prisma.Login.update({
+        await prisma.login.update({
           where: { id: existingLogin.id },
           data: {
             password: DEFAULT_PASSWORD,
@@ -39,7 +39,7 @@ async function main() {
       }
     } else {
       // Criar o login padrão
-      await prisma.Login.create({
+      await prisma.login.create({
         data: {
           username: DEFAULT_USERNAME,
           password: DEFAULT_PASSWORD,
@@ -49,34 +49,36 @@ async function main() {
       console.log(`Login padrão '${DEFAULT_USERNAME}' foi criado.`);
     }
     
-    // Verificar se já existe configuração
-    const existingConf = await prisma.Conf.findFirst();
-    
-    if (existingConf) {
-      // Atualizar a configuração existente se o valor do ambiente for diferente
-      if (existingConf.active_time_minutes !== ACTIVE_TIME_MINUTES) {
-        await prisma.Conf.update({
-          where: { id: existingConf.id },
-          data: {
-            active_time_minutes: ACTIVE_TIME_MINUTES
-          }
-        });
-        console.log(`Configuração de tempo ativo atualizada para ${ACTIVE_TIME_MINUTES} minutos.`);
-      } else {
-        console.log(`Configuração de tempo ativo já existe: ${existingConf.active_time_minutes} minutos.`);
-      }
-    } else {
-      // Criar nova configuração
-      await prisma.Conf.create({
-        data: {
-          active_time_minutes: ACTIVE_TIME_MINUTES
-        }
-      });
-      console.log(`Configuração de tempo ativo criada: ${ACTIVE_TIME_MINUTES} minutos.`);
+    // Criar a tabela Conf se não existir
+    // Usando SQL bruto para contornar o problema do modelo Conf
+    try {
+      await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS \`Conf\` (
+          \`id\` INT NOT NULL AUTO_INCREMENT,
+          \`active_time_minutes\` INT NOT NULL DEFAULT 15,
+          \`createdAt\` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+          \`updatedAt\` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+          PRIMARY KEY (\`id\`)
+        ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+      `);
+      
+      // Inserir um registro se a tabela estiver vazia
+      await prisma.$executeRawUnsafe(`
+        INSERT INTO \`Conf\` (\`active_time_minutes\`, \`updatedAt\`)
+        SELECT 
+          ${ACTIVE_TIME_MINUTES},
+          CURRENT_TIMESTAMP(3)
+        FROM dual
+        WHERE NOT EXISTS (SELECT * FROM \`Conf\` LIMIT 1);
+      `);
+      
+      console.log(`Configuração de tempo ativo verificada/criada: ${ACTIVE_TIME_MINUTES} minutos.`);
+    } catch (error) {
+      console.error('Erro ao criar tabela Conf:', error);
     }
     
     // Contar usuários no sistema
-    const userCount = await prisma.User.count();
+    const userCount = await prisma.user.count();
     console.log(`Total de usuários cadastrados: ${userCount}`);
     
   } catch (error) {
