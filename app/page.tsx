@@ -179,7 +179,8 @@ export default function Home() {
     }
 
     try {
-      const res = await fetch('/api/validate-login', {
+      // Usar a rota validate-voucher para compatibilidade com o sistema existente
+      const res = await fetch('/api/validate-voucher', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -205,8 +206,8 @@ export default function Home() {
           setSuccessMessage('Redirecionando para o portal de acesso...');
           
           // Redireciona para o portal de login usando as credenciais recebidas
-          const username = data.username;
-          const password = data.password;
+          const username = data.voucher; // Usar voucher como username para compatibilidade
+          const password = data.voucher; // Na API antiga o voucher era usado como senha também
           
           // Proteger contra XSS ao montar a URL
           const encodedUsername = encodeURIComponent(username);
