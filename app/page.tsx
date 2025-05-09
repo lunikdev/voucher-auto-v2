@@ -266,7 +266,8 @@ export default function Home() {
   return (
     <div className={styles.wrapper}>
       <div className={styles.container}>
-        <h1 className={styles.title}>Validação de Login</h1>
+        <h1 className={styles.title}>Validação de Login Único</h1>
+        <p className={styles.subtitle}>Digite seus dados e o login fornecido para acessar a internet</p>
         
         <form onSubmit={handleSubmit} className={styles.form}>
           <label htmlFor="name" className={styles.label}>Nome Completo</label>
