@@ -17,6 +17,7 @@ export default function Home() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -26,7 +27,8 @@ export default function Home() {
   const [formErrors, setFormErrors] = useState({
     name: '',
     email: '',
-    phone: ''
+    phone: '',
+    username: ''
   });
 
   // Função para obter o MAC address quando a página carrega
@@ -109,7 +111,16 @@ export default function Home() {
     }
   };
 
-  const validateField = (field: 'name' | 'email' | 'phone', value: string) => {
+  const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // Limitar o tamanho do username
+    if (value.length <= 50) {
+      setUsername(value);
+      validateField('username', value);
+    }
+  };
+
+  const validateField = (field: 'name' | 'email' | 'phone' | 'username', value: string) => {
     let errors = { ...formErrors };
     
     switch (field) {
@@ -144,6 +155,16 @@ export default function Home() {
           errors.phone = '';
         }
         break;
+        
+      case 'username':
+        if (!value.trim()) {
+          errors.username = 'Login é obrigatório';
+        } else if (value.trim().length < 3) {
+          errors.username = 'Login deve ter pelo menos 3 caracteres';
+        } else {
+          errors.username = '';
+        }
+        break;
     }
     
     setFormErrors(errors);
@@ -153,8 +174,9 @@ export default function Home() {
     validateField('name', name);
     validateField('email', email);
     validateField('phone', phone);
+    validateField('username', username);
     
-    return !formErrors.name && !formErrors.email && !formErrors.phone;
+    return !formErrors.name && !formErrors.email && !formErrors.phone && !formErrors.username;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -179,7 +201,7 @@ export default function Home() {
     }
 
     try {
-      const res = await fetch('/api/validate-voucher', {
+      const res = await fetch('/api/validate-login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -188,7 +210,8 @@ export default function Home() {
           name: name.trim(),
           email: email.trim().toLowerCase(),
           phone: phone.replace(/\D/g, ''), // Remove caracteres não numéricos
-          mac: macAddress // Inclui o MAC address na requisição
+          mac: macAddress, // Inclui o MAC address na requisição
+          username: username.trim()
         }),
       });
 
@@ -201,15 +224,17 @@ export default function Home() {
           setSuccessMessage(data.message);
           setLoading(false);
         } else {
-          // Novo voucher foi validado
+          // Novo login foi validado
           setSuccessMessage('Redirecionando para o portal de acesso...');
           
-          // Redireciona para o portal de login usando o código do voucher como usuário e senha
-          const voucherCode = data.voucher;
+          // Redireciona para o portal de login usando as credenciais recebidas
+          const username = data.username;
+          const password = data.password;
           
           // Proteger contra XSS ao montar a URL
-          const encodedVoucher = encodeURIComponent(voucherCode);
-          const loginUrl = `${LOGIN_PORTAL_URL}/login?username=${encodedVoucher}&password=${encodedVoucher}`;
+          const encodedUsername = encodeURIComponent(username);
+          const encodedPassword = encodeURIComponent(password);
+          const loginUrl = `${LOGIN_PORTAL_URL}/login?username=${encodedUsername}&password=${encodedPassword}`;
           
           // Pequeno atraso para mostrar a mensagem de sucesso antes do redirecionamento
           setTimeout(() => {
@@ -241,7 +266,7 @@ export default function Home() {
   return (
     <div className={styles.wrapper}>
       <div className={styles.container}>
-        <h1 className={styles.title}>Validação de Voucher</h1>
+        <h1 className={styles.title}>Validação de Login</h1>
         
         <form onSubmit={handleSubmit} className={styles.form}>
           <label htmlFor="name" className={styles.label}>Nome Completo</label>
@@ -281,6 +306,19 @@ export default function Home() {
             required 
           />
           {formErrors.phone && <div className={styles.fieldError}>{formErrors.phone}</div>}
+          
+          <label htmlFor="username" className={styles.label}>Login</label>
+          <input 
+            type="text" 
+            id="username"
+            value={username} 
+            onChange={handleUsernameChange} 
+            className={`${styles.input} ${formErrors.username ? styles.inputError : ''}`} 
+            placeholder="Digite seu login" 
+            maxLength={50}
+            required 
+          />
+          {formErrors.username && <div className={styles.fieldError}>{formErrors.username}</div>}
 
           {errorMessage && <div className={styles.error}>{errorMessage}</div>}
           {successMessage && <div className={styles.success}>{successMessage}</div>}
