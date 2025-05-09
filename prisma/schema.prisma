@@ -33,7 +33,7 @@ model User {
   loginId   Int      
 }
 
-model Conf {
+model conf {
   id                      Int       @id @default(autoincrement())
   active_time_minutes     Int       @default(15) // Valor padrão de 15 minutos
   createdAt               DateTime  @default(now())
