@@ -2,7 +2,7 @@
 
 import { Suspense } from 'react';
 import styles from '../../public/voucher.module.css';
-import LoginRedirectContent from './LoginRedirectContent';
+import LoginRedirectContent from './login-redirect-content';
 
 export default function LoginRedirectPage() {
   return (
