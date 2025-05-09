@@ -50,7 +50,6 @@ async function main() {
     }
     
     // Criar a tabela Conf se não existir
-    // Usando SQL bruto para contornar o problema do modelo Conf
     try {
       await prisma.$executeRawUnsafe(`
         CREATE TABLE IF NOT EXISTS \`Conf\` (
@@ -62,19 +61,32 @@ async function main() {
         ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
       `);
       
-      // Inserir um registro se a tabela estiver vazia
-      await prisma.$executeRawUnsafe(`
-        INSERT INTO \`Conf\` (\`active_time_minutes\`, \`updatedAt\`)
-        SELECT 
-          ${ACTIVE_TIME_MINUTES},
-          CURRENT_TIMESTAMP(3)
-        FROM dual
-        WHERE NOT EXISTS (SELECT * FROM \`Conf\` LIMIT 1);
-      `);
+      // Verificar se já existe algum registro
+      const confResults = await prisma.$queryRawUnsafe(`SELECT id, active_time_minutes FROM Conf LIMIT 1`);
       
-      console.log(`Configuração de tempo ativo verificada/criada: ${ACTIVE_TIME_MINUTES} minutos.`);
+      if (Array.isArray(confResults) && confResults.length > 0) {
+        // Se o valor no .env for diferente do banco de dados, atualizar
+        if (confResults[0].active_time_minutes !== ACTIVE_TIME_MINUTES) {
+          await prisma.$executeRawUnsafe(`
+            UPDATE Conf 
+            SET active_time_minutes = ${ACTIVE_TIME_MINUTES}, 
+                updatedAt = CURRENT_TIMESTAMP(3)
+            WHERE id = ${confResults[0].id}
+          `);
+          console.log(`Configuração de tempo ativo atualizada para ${ACTIVE_TIME_MINUTES} minutos (era ${confResults[0].active_time_minutes}).`);
+        } else {
+          console.log(`Configuração de tempo ativo mantida em ${ACTIVE_TIME_MINUTES} minutos.`);
+        }
+      } else {
+        // Inserir um registro se a tabela estiver vazia
+        await prisma.$executeRawUnsafe(`
+          INSERT INTO Conf (active_time_minutes, updatedAt)
+          VALUES (${ACTIVE_TIME_MINUTES}, CURRENT_TIMESTAMP(3))
+        `);
+        console.log(`Configuração de tempo ativo criada: ${ACTIVE_TIME_MINUTES} minutos.`);
+      }
     } catch (error) {
-      console.error('Erro ao criar tabela Conf:', error);
+      console.error('Erro ao manipular tabela Conf:', error);
     }
     
     // Contar usuários no sistema
