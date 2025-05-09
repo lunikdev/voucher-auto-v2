@@ -83,7 +83,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         message: 'Sua navegação já foi liberada',
         alreadyActive: true,
-        voucher: existingUser.login.username // Manter compatibilidade com a interface anterior
+        voucher: existingUser.login.username, // Para compatibilidade
+        username: existingUser.login.username,
+        password: existingUser.login.password
       });
     }
 
@@ -120,7 +122,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       message: 'Login validado com sucesso!',
-      voucher: loginData.username // Manter compatibilidade com a interface anterior
+      voucher: loginData.username, // Para compatibilidade com o código antigo
+      username: loginData.username,
+      password: loginData.password
     });
   } catch (error) {
     console.error('Erro ao validar acesso:', error);
