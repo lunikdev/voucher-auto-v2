@@ -205,9 +205,11 @@ export default function Home() {
           // Novo login foi validado
           setSuccessMessage('Redirecionando para o portal de acesso...');
           
-          // Redireciona para o portal de login usando as credenciais recebidas
-          const username = data.voucher; // Usar voucher como username para compatibilidade
-          const password = data.voucher; // Na API antiga o voucher era usado como senha também
+          // Obter username e password da resposta
+          // Para compatibilidade, usamos username e password se estiverem disponíveis
+          // Caso contrário, usamos o voucher para ambos (comportamento antigo)
+          const username = data.username || data.voucher;
+          const password = data.password || data.voucher;
           
           // Proteger contra XSS ao montar a URL
           const encodedUsername = encodeURIComponent(username);
