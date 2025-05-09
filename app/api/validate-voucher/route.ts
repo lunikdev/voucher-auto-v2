@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
       }
     } else {
       // Se não estiver no ambiente, tentar obter do banco de dados
-      const confSettings = await prisma.conf.findFirst();
+      const confSettings = await prisma.Conf.findFirst();
       if (confSettings && confSettings.active_time_minutes > 0) {
         activeTimeMinutes = confSettings.active_time_minutes;
       }
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
     recentTime.setMinutes(recentTime.getMinutes() - activeTimeMinutes);
 
     // Verificar se já existe um usuário com este MAC
-    const existingUser = await prisma.user.findFirst({
+    const existingUser = await prisma.User.findFirst({
       where: {
         mac: mac,
         updatedAt: {
@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Obter ou criar o login padrão
-    let loginData = await prisma.login.findFirst({
+    let loginData = await prisma.Login.findFirst({
       where: {
         username: DEFAULT_USERNAME,
         active: true
@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
 
     // Se não existir, criar o login padrão
     if (!loginData) {
-      loginData = await prisma.login.create({
+      loginData = await prisma.Login.create({
         data: {
           username: DEFAULT_USERNAME,
           password: DEFAULT_PASSWORD,
@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Criar ou atualizar o usuário associado ao login
-    const existingUserAnyTime = await prisma.user.findFirst({
+    const existingUserAnyTime = await prisma.User.findFirst({
       where: {
         mac: mac
       }
@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
     
     if (existingUserAnyTime) {
       // Atualizar o usuário existente
-      await prisma.user.update({
+      await prisma.User.update({
         where: {
           id: existingUserAnyTime.id
         },
@@ -157,7 +157,7 @@ export async function POST(request: NextRequest) {
       });
     } else {
       // Criar um novo usuário
-      await prisma.user.create({
+      await prisma.User.create({
         data: {
           name: validator.escape(name), // Escapar HTML para prevenir XSS
           email: email.toLowerCase(), // Normalizar email
