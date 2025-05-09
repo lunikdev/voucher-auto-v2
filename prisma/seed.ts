@@ -2,12 +2,15 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 // Credenciais fixas - idealmente, buscar de variáveis de ambiente
-const DEFAULT_USERNAME = process.env.DEFAULT_USERNAME || 'internet';
-const DEFAULT_PASSWORD = process.env.DEFAULT_PASSWORD || 'acesso2024';
+const DEFAULT_USERNAME = process.env.DEFAULT_USERNAME || 'qrtempo';
+const DEFAULT_PASSWORD = process.env.DEFAULT_PASSWORD || 'B1AK26L2M4';
+const ACTIVE_TIME_MINUTES = process.env.ACTIVE_VOUCHER_TIME_MINUTES 
+  ? parseInt(process.env.ACTIVE_VOUCHER_TIME_MINUTES, 10) 
+  : 15;
 
 async function main() {
-  // Limpar tabelas existentes se necessário
-  // Para produção, é melhor comentar essas linhas para preservar os dados
+  // Não limpar tabelas existentes em produção
+  // Comentar essas linhas para preservar os dados
   // await prisma.user.deleteMany();
   // await prisma.login.deleteMany();
   // console.log('Banco de dados limpo');
@@ -44,6 +47,32 @@ async function main() {
         },
       });
       console.log(`Login padrão '${DEFAULT_USERNAME}' foi criado.`);
+    }
+    
+    // Verificar se já existe configuração
+    const existingConf = await prisma.conf.findFirst();
+    
+    if (existingConf) {
+      // Atualizar a configuração existente se o valor do ambiente for diferente
+      if (existingConf.active_time_minutes !== ACTIVE_TIME_MINUTES) {
+        await prisma.conf.update({
+          where: { id: existingConf.id },
+          data: {
+            active_time_minutes: ACTIVE_TIME_MINUTES
+          }
+        });
+        console.log(`Configuração de tempo ativo atualizada para ${ACTIVE_TIME_MINUTES} minutos.`);
+      } else {
+        console.log(`Configuração de tempo ativo já existe: ${existingConf.active_time_minutes} minutos.`);
+      }
+    } else {
+      // Criar nova configuração
+      await prisma.conf.create({
+        data: {
+          active_time_minutes: ACTIVE_TIME_MINUTES
+        }
+      });
+      console.log(`Configuração de tempo ativo criada: ${ACTIVE_TIME_MINUTES} minutos.`);
     }
     
     // Contar usuários no sistema
