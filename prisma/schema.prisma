@@ -32,3 +32,10 @@ model User {
   login     Login    @relation(fields: [loginId], references: [id])
   loginId   Int      
 }
+
+model Conf {
+  id                      Int       @id @default(autoincrement())
+  active_time_minutes     Int       @default(15) // Valor padrão de 15 minutos
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+}
