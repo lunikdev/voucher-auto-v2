@@ -11,6 +11,9 @@ const LOGIN_PORTAL_URL = process.env.NEXT_PUBLIC_LOGIN_PORTAL_URL || 'https://hs
 const DEFAULT_USERNAME = process.env.DEFAULT_USERNAME || 'qrtempo';
 const DEFAULT_PASSWORD = process.env.DEFAULT_PASSWORD || 'B1AK26L2M4';
 
+// Tempo limite padrão em minutos para considerar uma navegação como ativa
+const DEFAULT_ACTIVE_TIME_MINUTES = 15;
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -68,11 +71,35 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+    
+    // Obter o tempo ativo da configuração
+    let activeTimeMinutes = DEFAULT_ACTIVE_TIME_MINUTES;
+    
+    // Primeiro tentar obter da variável de ambiente (prioridade)
+    if (process.env.ACTIVE_VOUCHER_TIME_MINUTES) {
+      const envTime = parseInt(process.env.ACTIVE_VOUCHER_TIME_MINUTES, 10);
+      if (!isNaN(envTime) && envTime > 0) {
+        activeTimeMinutes = envTime;
+      }
+    } else {
+      // Se não estiver no ambiente, tentar obter do banco de dados
+      const confSettings = await prisma.conf.findFirst();
+      if (confSettings && confSettings.active_time_minutes > 0) {
+        activeTimeMinutes = confSettings.active_time_minutes;
+      }
+    }
+    
+    // Calcular o tempo limite para considerar uma navegação ativa
+    const recentTime = new Date();
+    recentTime.setMinutes(recentTime.getMinutes() - activeTimeMinutes);
 
     // Verificar se já existe um usuário com este MAC
     const existingUser = await prisma.user.findFirst({
       where: {
-        mac: mac
+        mac: mac,
+        updatedAt: {
+          gte: recentTime // Verifica se foi atualizado recentemente
+        }
       },
       include: {
         login: true
@@ -106,17 +133,41 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Criar o usuário associado ao login
-    await prisma.user.create({
-      data: {
-        name: validator.escape(name), // Escapar HTML para prevenir XSS
-        email: email.toLowerCase(), // Normalizar email
-        phone: phoneDigits,
-        ip: ip,
-        mac: mac,
-        loginId: loginData.id
+    // Criar ou atualizar o usuário associado ao login
+    const existingUserAnyTime = await prisma.user.findFirst({
+      where: {
+        mac: mac
       }
     });
+    
+    if (existingUserAnyTime) {
+      // Atualizar o usuário existente
+      await prisma.user.update({
+        where: {
+          id: existingUserAnyTime.id
+        },
+        data: {
+          name: validator.escape(name),
+          email: email.toLowerCase(),
+          phone: phoneDigits,
+          ip: ip,
+          loginId: loginData.id,
+          updatedAt: new Date() // Atualizar o timestamp
+        }
+      });
+    } else {
+      // Criar um novo usuário
+      await prisma.user.create({
+        data: {
+          name: validator.escape(name), // Escapar HTML para prevenir XSS
+          email: email.toLowerCase(), // Normalizar email
+          phone: phoneDigits,
+          ip: ip,
+          mac: mac,
+          loginId: loginData.id
+        }
+      });
+    }
 
     return NextResponse.json({
       message: 'Login validado com sucesso!',
