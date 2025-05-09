@@ -11,6 +11,12 @@ const LOGIN_PORTAL_URL = process.env.NEXT_PUBLIC_LOGIN_PORTAL_URL || 'https://hs
 const DEFAULT_USERNAME = process.env.DEFAULT_USERNAME || 'internet';
 const DEFAULT_PASSWORD = process.env.DEFAULT_PASSWORD || 'acesso2024';
 
+// Tempo limite em minutos para considerar uma navegação como ativa
+// Usar variável de ambiente ou valor padrão de 15 minutos
+const ACTIVE_TIME_LIMIT_MINUTES = process.env.ACTIVE_VOUCHER_TIME_MINUTES 
+  ? parseInt(process.env.ACTIVE_VOUCHER_TIME_MINUTES, 10) 
+  : 15;
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -69,6 +75,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Verificar se o MAC já está registrado - verificamos se o usuário já existe
+    const recentTime = new Date();
+    recentTime.setMinutes(recentTime.getMinutes() - ACTIVE_TIME_LIMIT_MINUTES);
+
+    const existingUser = await prisma.user.findFirst({
+      where: {
+        mac: mac,
+        updatedAt: {
+          gte: recentTime
+        }
+      },
+      include: {
+        login: true
+      }
+    });
+
+    if (existingUser) {
+      return NextResponse.json({
+        message: 'Sua navegação já foi liberada',
+        alreadyActive: true,
+        voucher: existingUser.login.username // Manter compatibilidade com a interface anterior
+      });
+    }
+
     // Obter ou criar um login padrão
     let loginData = await prisma.login.findFirst({
       where: {
@@ -85,22 +115,6 @@ export async function POST(request: NextRequest) {
           password: DEFAULT_PASSWORD,
           active: true,
         }
-      });
-    }
-
-    // Verificar se este MAC já está associado a este login
-    const existingUser = await prisma.user.findFirst({
-      where: {
-        mac: mac,
-        loginId: loginData.id,
-      },
-    });
-
-    if (existingUser) {
-      return NextResponse.json({
-        message: 'Sua navegação já foi liberada',
-        alreadyActive: true,
-        voucher: loginData.username // Manter compatibilidade com a interface anterior
       });
     }
 
