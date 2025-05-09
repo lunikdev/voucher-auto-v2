@@ -1,54 +1,57 @@
 const { PrismaClient } = require('@prisma/client');
-const fs = require('fs');
-const path = require('path');
-
 const prisma = new PrismaClient();
 
-async function main() {
-  // Limpar tabelas existentes
-  await prisma.user.deleteMany();
-  await prisma.voucher.deleteMany();
+// Credenciais fixas - idealmente, buscar de variáveis de ambiente
+const DEFAULT_USERNAME = process.env.DEFAULT_USERNAME || 'internet';
+const DEFAULT_PASSWORD = process.env.DEFAULT_PASSWORD || 'acesso2024';
 
-  console.log('Banco de dados limpo');
+async function main() {
+  // Limpar tabelas existentes se necessário
+  // Para produção, é melhor comentar essas linhas para preservar os dados
+  // await prisma.user.deleteMany();
+  // await prisma.login.deleteMany();
+  // console.log('Banco de dados limpo');
 
   try {
-    // Caminho para o arquivo de vouchers
-    const voucherFilePath = path.join(__dirname, '../vouchers.txt');
-    
-    // Verificar se o arquivo existe
-    if (!fs.existsSync(voucherFilePath)) {
-      console.error('Arquivo vouchers.txt não encontrado!');
-      console.log('Certifique-se de que o arquivo existe na raiz do projeto.');
-      return;
-    }
-    
-    // Ler o arquivo de vouchers
-    const voucherData = fs.readFileSync(voucherFilePath, 'utf8');
-    
-    // Dividir o conteúdo por linhas e filtrar linhas vazias
-    const vouchers = voucherData.split('\n')
-      .map((line: string) => line.trim())
-      .filter((line: string) => line.length > 0);
-    
-    // Verificar se há vouchers no arquivo
-    if (vouchers.length === 0) {
-      console.log('Nenhum voucher encontrado no arquivo!');
-      return;
-    }
-    
-    // Inserir vouchers no banco de dados
-    for (const voucherCode of vouchers) {
-      await prisma.voucher.create({
+    // Verificar se o login padrão já existe
+    const existingLogin = await prisma.login.findFirst({
+      where: {
+        username: DEFAULT_USERNAME
+      }
+    });
+
+    if (existingLogin) {
+      console.log(`Login padrão '${DEFAULT_USERNAME}' já existe.`);
+      
+      // Atualizar a senha se necessário e garantir que esteja ativo
+      if (existingLogin.password !== DEFAULT_PASSWORD || !existingLogin.active) {
+        await prisma.login.update({
+          where: { id: existingLogin.id },
+          data: {
+            password: DEFAULT_PASSWORD,
+            active: true
+          }
+        });
+        console.log(`Login padrão '${DEFAULT_USERNAME}' foi atualizado.`);
+      }
+    } else {
+      // Criar o login padrão
+      await prisma.login.create({
         data: {
-          voucher: voucherCode,
-          used: false,
+          username: DEFAULT_USERNAME,
+          password: DEFAULT_PASSWORD,
+          active: true,
         },
       });
+      console.log(`Login padrão '${DEFAULT_USERNAME}' foi criado.`);
     }
     
-    console.log(`${vouchers.length} vouchers foram importados do arquivo`);
+    // Contar usuários no sistema
+    const userCount = await prisma.user.count();
+    console.log(`Total de usuários cadastrados: ${userCount}`);
+    
   } catch (error) {
-    console.error('Erro ao importar vouchers:', error);
+    console.error('Erro durante a inicialização:', error);
   }
 }
 
