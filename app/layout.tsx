@@ -5,8 +5,8 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Sistema de Vouchers',
-  description: 'Sistema para validação de vouchers',
+  title: 'Sistema de Login Único',
+  description: 'Sistema para validação de login único',
 };
 
 export default function RootLayout({
