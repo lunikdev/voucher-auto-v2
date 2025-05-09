@@ -11,12 +11,6 @@ const LOGIN_PORTAL_URL = process.env.NEXT_PUBLIC_LOGIN_PORTAL_URL || 'https://hs
 const DEFAULT_USERNAME = process.env.DEFAULT_USERNAME || 'internet';
 const DEFAULT_PASSWORD = process.env.DEFAULT_PASSWORD || 'acesso2024';
 
-// Tempo limite em minutos para considerar uma navegação como ativa
-// Usar variável de ambiente ou valor padrão de 15 minutos
-const ACTIVE_TIME_LIMIT_MINUTES = process.env.ACTIVE_VOUCHER_TIME_MINUTES 
-  ? parseInt(process.env.ACTIVE_VOUCHER_TIME_MINUTES, 10) 
-  : 15;
-
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -75,16 +69,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verificar se o MAC já está registrado - verificamos se o usuário já existe
-    const recentTime = new Date();
-    recentTime.setMinutes(recentTime.getMinutes() - ACTIVE_TIME_LIMIT_MINUTES);
-
+    // Verificar se já existe um usuário com este MAC
     const existingUser = await prisma.user.findFirst({
       where: {
-        mac: mac,
-        updatedAt: {
-          gte: recentTime
-        }
+        mac: mac
       },
       include: {
         login: true
@@ -99,12 +87,12 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Obter ou criar um login padrão
+    // Obter ou criar o login padrão
     let loginData = await prisma.login.findFirst({
       where: {
         username: DEFAULT_USERNAME,
-        active: true,
-      },
+        active: true
+      }
     });
 
     // Se não existir, criar o login padrão
@@ -113,12 +101,12 @@ export async function POST(request: NextRequest) {
         data: {
           username: DEFAULT_USERNAME,
           password: DEFAULT_PASSWORD,
-          active: true,
+          active: true
         }
       });
     }
 
-    // Criar um novo usuário associado ao login
+    // Criar o usuário associado ao login
     await prisma.user.create({
       data: {
         name: validator.escape(name), // Escapar HTML para prevenir XSS
@@ -126,16 +114,16 @@ export async function POST(request: NextRequest) {
         phone: phoneDigits,
         ip: ip,
         mac: mac,
-        loginId: loginData.id,
-      },
+        loginId: loginData.id
+      }
     });
 
     return NextResponse.json({
       message: 'Login validado com sucesso!',
-      voucher: loginData.username, // Manter compatibilidade com a interface anterior
+      voucher: loginData.username // Manter compatibilidade com a interface anterior
     });
   } catch (error) {
-    console.error('Erro ao validar login:', error);
+    console.error('Erro ao validar acesso:', error);
     return NextResponse.json(
       { message: 'Erro interno do servidor' },
       { status: 500 }
