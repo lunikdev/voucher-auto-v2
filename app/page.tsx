@@ -17,7 +17,6 @@ export default function Home() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -27,8 +26,7 @@ export default function Home() {
   const [formErrors, setFormErrors] = useState({
     name: '',
     email: '',
-    phone: '',
-    username: ''
+    phone: ''
   });
 
   // Função para obter o MAC address quando a página carrega
@@ -111,16 +109,7 @@ export default function Home() {
     }
   };
 
-  const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    // Limitar o tamanho do username
-    if (value.length <= 50) {
-      setUsername(value);
-      validateField('username', value);
-    }
-  };
-
-  const validateField = (field: 'name' | 'email' | 'phone' | 'username', value: string) => {
+  const validateField = (field: 'name' | 'email' | 'phone', value: string) => {
     let errors = { ...formErrors };
     
     switch (field) {
@@ -155,16 +144,6 @@ export default function Home() {
           errors.phone = '';
         }
         break;
-        
-      case 'username':
-        if (!value.trim()) {
-          errors.username = 'Login é obrigatório';
-        } else if (value.trim().length < 3) {
-          errors.username = 'Login deve ter pelo menos 3 caracteres';
-        } else {
-          errors.username = '';
-        }
-        break;
     }
     
     setFormErrors(errors);
@@ -174,9 +153,8 @@ export default function Home() {
     validateField('name', name);
     validateField('email', email);
     validateField('phone', phone);
-    validateField('username', username);
     
-    return !formErrors.name && !formErrors.email && !formErrors.phone && !formErrors.username;
+    return !formErrors.name && !formErrors.email && !formErrors.phone;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -210,8 +188,7 @@ export default function Home() {
           name: name.trim(),
           email: email.trim().toLowerCase(),
           phone: phone.replace(/\D/g, ''), // Remove caracteres não numéricos
-          mac: macAddress, // Inclui o MAC address na requisição
-          username: username.trim()
+          mac: macAddress // Inclui o MAC address na requisição
         }),
       });
 
@@ -266,8 +243,8 @@ export default function Home() {
   return (
     <div className={styles.wrapper}>
       <div className={styles.container}>
-        <h1 className={styles.title}>Validação de Login Único</h1>
-        <p className={styles.subtitle}>Digite seus dados e o login fornecido para acessar a internet</p>
+        <h1 className={styles.title}>Acesso à Internet</h1>
+        <p className={styles.subtitle}>Preencha seus dados para acessar a internet</p>
         
         <form onSubmit={handleSubmit} className={styles.form}>
           <label htmlFor="name" className={styles.label}>Nome Completo</label>
@@ -307,19 +284,6 @@ export default function Home() {
             required 
           />
           {formErrors.phone && <div className={styles.fieldError}>{formErrors.phone}</div>}
-          
-          <label htmlFor="username" className={styles.label}>Login</label>
-          <input 
-            type="text" 
-            id="username"
-            value={username} 
-            onChange={handleUsernameChange} 
-            className={`${styles.input} ${formErrors.username ? styles.inputError : ''}`} 
-            placeholder="Digite seu login" 
-            maxLength={50}
-            required 
-          />
-          {formErrors.username && <div className={styles.fieldError}>{formErrors.username}</div>}
 
           {errorMessage && <div className={styles.error}>{errorMessage}</div>}
           {successMessage && <div className={styles.success}>{successMessage}</div>}
@@ -329,7 +293,7 @@ export default function Home() {
             className={styles.button}
             disabled={loading}
           >
-            {loading ? 'Processando...' : 'Validar'}
+            {loading ? 'Processando...' : 'Acessar Internet'}
           </button>
         </form>
 
