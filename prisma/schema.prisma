@@ -10,15 +10,14 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Voucher {
+model Login {
   id             Int       @id @default(autoincrement())
-  voucher        String    @unique
-  used           Boolean   @default(false)
-  mac            String?  
-  usedAt         DateTime? // Quando o voucher foi utilizado
+  username       String    @unique
+  password       String
+  active         Boolean   @default(true)
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
-  user           User?
+  users          User[]    // Relação 1:N - um login pode ter vários usuários
 }
 
 model User {
@@ -26,10 +25,10 @@ model User {
   name      String
   email     String
   phone     String
-  ip        String?  // Nova coluna para armazenar o IP do usuário
-  mac       String?  // Nova coluna para armazenar o MAC do usuário
+  ip        String   // Armazena o IP do usuário
+  mac       String   // Armazena o MAC do usuário
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  voucher   Voucher  @relation(fields: [voucherId], references: [id])
-  voucherId Int      @unique
+  login     Login    @relation(fields: [loginId], references: [id])
+  loginId   Int      // Chave estrangeira para o login
 }
