@@ -31,6 +31,11 @@ export default function Home() {
 
   // Função para obter o MAC address quando a página carrega
   useEffect(() => {
+    // Limpar qualquer tentativa anterior de redirecionamento ao carregar a página inicial
+    if (typeof window !== 'undefined' && window.sessionStorage) {
+      sessionStorage.removeItem('redirect_attempt');
+    }
+    
     const handleMacAddress = () => {
       // Primeiro, verifica se já temos o MAC armazenado em cookie
       const storedMac = getMacFromCookie();
@@ -197,19 +202,22 @@ export default function Home() {
       
       if (res.ok) {
         if (data.alreadyActive) {
-          // Navegação já está liberada
+          // Navegação já está liberada - não recebemos mais credenciais por segurança
           setAlreadyActive(true);
-          setSuccessMessage(data.message);
+          setSuccessMessage(data.message || 'Sua navegação já foi liberada');
           setLoading(false);
-        } else {
-          // Novo login foi validado
+        } else if (data.username && data.password) {
+          // Novo login foi validado e temos as credenciais necessárias
           setSuccessMessage('Redirecionando para o portal de acesso...');
           
           // Obter username e password da resposta
-          // Para compatibilidade, usamos username e password se estiverem disponíveis
-          // Caso contrário, usamos o voucher para ambos (comportamento antigo)
           const username = data.username || data.voucher;
           const password = data.password || data.voucher;
+          
+          // Limpar qualquer tentativa anterior de redirecionamento
+          if (typeof window !== 'undefined' && window.sessionStorage) {
+            sessionStorage.removeItem('redirect_attempt');
+          }
           
           // Usar a página de redirecionamento interna
           const encodedUsername = encodeURIComponent(username);
@@ -217,6 +225,10 @@ export default function Home() {
           
           // Redirecionar para nossa página interna de redirecionamento
           window.location.href = `/login-redirect?username=${encodedUsername}&password=${encodedPassword}`;
+        } else {
+          // Resposta mal formada da API
+          setErrorMessage('Erro no servidor. Por favor, tente novamente mais tarde.');
+          setLoading(false);
         }
       } else {
         setErrorMessage(data.message || 'Ocorreu um erro ao processar sua solicitação.');
